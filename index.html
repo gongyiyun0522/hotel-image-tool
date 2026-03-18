@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>酒店图片工坊 - 在线图片处理工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .upload-area { border: 2px dashed #d1d5db; transition: all 0.2s ease; }
+    .upload-area:hover { border-color: #3b82f6; background-color: #eff6ff; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+      <h1 class="text-2xl font-bold text-gray-900">🏨 酒店图片工坊</h1>
+      <p class="text-sm text-gray-500">在线图片处理工具</p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <!-- 上传区域 -->
+    <div id="uploadArea" class="upload-area rounded-xl p-12 text-center cursor-pointer">
+      <div class="text-6xl mb-4">📤</div>
+      <p class="text-lg text-gray-600 mb-2">点击或拖拽上传图片</p>
+      <p class="text-sm text-gray-400">支持 JPG、PNG、WebP 格式</p>
+      <input type="file" id="fileInput" accept="image/*" class="hidden">
+    </div>
+
+    <!-- 编辑器区域 -->
+    <div id="editorArea" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 工具栏 -->
+      <div class="lg:col-span-1 space-y-4">
+        <!-- 工具选择 -->
+        <div class="bg-white rounded-xl p-4 shadow-sm">
+          <h3 class="font-semibold mb-3">选择工具</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setTool('crop')" id="btn-crop" class="p-3 rounded-lg text-center bg-blue-600 text-white">
+              <div class="text-2xl mb-1">✂️</div>
+              <div class="text-sm">裁剪</div>
+            </button>
+            <button onclick="setTool('resize')" id="btn-resize" class="p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200">
+              <div class="text-2xl mb-1">📐</div>
+              <div class="text-sm">尺寸</div>
+            </button>
+            <button onclick="setTool('rotate')" id="btn-rotate" class="p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200">
+              <div class="text-2xl mb-1">🔄</div>
+              <div class="text-sm">旋转</div>
+            </button>
+            <button onclick="setTool('compress')" id="btn-compress" class="p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200">
+              <div class="text-2xl mb-1">📦</div>
+              <div class="text-sm">压缩</div>
+            </button>
+            <button onclick="setTool('convert')" id="btn-convert" class="p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200">
+              <div class="text-2xl mb-1">🔁</div>
+              <div class="text-sm">格式</div>
+            </button>
+            <button onclick="setTool('ai')" id="btn-ai" class="p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200">
+              <div class="text-2xl mb-1">🤖</div>
+              <div class="text-sm">AI增强</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 工具选项 -->
+        <div class="bg-white rounded-xl p-4 shadow-sm" id="toolOptions">
+          <!-- 裁剪选项 -->
+          <div id="cropOptions">
+            <h3 class="font-semibold mb-3">裁剪比例</h3>
+            <select id="cropPreset" class="w-full p-2 border rounded-lg mb-3">
+              <option value="free">自由裁剪</option>
+              <option value="16:9">16:9 宽屏</option>
+              <option value="4:3">4:3 标准</option>
+              <option value="1:1">1:1 方形</option>
+              <option value="2:3">2:3 竖版</option>
+            </select>
+            <button onclick="applyCrop()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">应用裁剪</button>
+          </div>
+
+          <!-- 尺寸选项 -->
+          <div id="resizeOptions" class="hidden">
+            <h3 class="font-semibold mb-3">调整尺寸</h3>
+            <input type="number" id="resizeWidth" placeholder="宽度" class="w-full p-2 border rounded-lg mb-2" value="800">
+            <input type="number" id="resizeHeight" placeholder="高度" class="w-full p-2 border rounded-lg mb-2" value="600">
+            <button onclick="applyResize()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-3">调整尺寸</button>
+            <hr class="my-3">
+            <label class="text-sm text-gray-600">缩放比例: <span id="percentValue">50%</span></label>
+            <input type="range" id="resizePercent" min="10" max="200" value="50" class="w-full my-2" oninput="document.getElementById('percentValue').textContent = this.value + '%'">
+            <button onclick="applyResizePercent()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">按比例缩放</button>
+          </div>
+
+          <!-- 旋转选项 -->
+          <div id="rotateOptions" class="hidden">
+            <h3 class="font-semibold mb-3">旋转/翻转</h3>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="applyRotate(-90)" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">↺ 左转 90°</button>
+              <button onclick="applyRotate(90)" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">↻ 右转 90°</button>
+              <button onclick="applyFlip('horizontal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">↔ 水平翻转</button>
+              <button onclick="applyFlip('vertical')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">↕ 垂直翻转</button>
+            </div>
+          </div>
+
+          <!-- 压缩选项 -->
+          <div id="compressOptions" class="hidden">
+            <h3 class="font-semibold mb-3">图片压缩</h3>
+            <label class="text-sm text-gray-600">质量: <span id="qualityValue">80%</span></label>
+            <input type="range" id="compressQuality" min="10" max="100" value="80" class="w-full my-2" oninput="document.getElementById('qualityValue').textContent = this.value + '%'">
+            <button onclick="applyCompress()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mt-3">压缩图片</button>
+          </div>
+
+          <!-- 格式转换选项 -->
+          <div id="convertOptions" class="hidden">
+            <h3 class="font-semibold mb-3">格式转换</h3>
+            <select id="convertFormat" class="w-full p-2 border rounded-lg mb-3">
+              <option value="jpeg">JPEG</option>
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+            </select>
+            <button onclick="applyConvert()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">转换格式</button>
+          </div>
+
+          <!-- AI 选项 -->
+          <div id="aiOptions" class="hidden">
+            <h3 class="font-semibold mb-3">AI 画质增强</h3>
+            <p class="text-sm text-gray-500 mb-3">使用 AI 技术智能提升图片清晰度</p>
+            <button onclick="alert('AI 增强功能即将上线！')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">🤖 AI 增强</button>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="bg-white rounded-xl p-4 shadow-sm space-y-2">
+          <button onclick="downloadImage()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">📥 下载图片</button>
+          <button onclick="clearImage()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">🗑️ 清空图片</button>
+        </div>
+      </div>
+
+      <!-- 预览 -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl p-4 shadow-sm">
+          <h3 class="font-semibold mb-3">预览</h3>
+          <div class="border rounded-lg overflow-hidden bg-gray-50 min-h-[400px] flex items-center justify-center">
+            <img id="previewImage" class="max-w-full max-h-[600px] object-contain hidden">
+            <p id="previewText" class="text-gray-400">暂无图片</p>
+          </div>
+          <p id="statusText" class="text-sm text-green-600 mt-2 text-center hidden">✅ 处理完成，已生成新图片</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let originalImage = null;
+    let currentImage = null;
+
+    // 上传处理
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadArea.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) loadImage(file);
+    };
+
+    uploadArea.ondragover = (e) => { e.preventDefault(); uploadArea.style.borderColor = '#3b82f6'; };
+    uploadArea.ondragleave = (e) => { e.preventDefault(); uploadArea.style.borderColor = '#d1d5db'; };
+    uploadArea.ondrop = (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '#d1d5db';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) loadImage(file);
+    };
+
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        originalImage = e.target.result;
+        currentImage = originalImage;
+        document.getElementById('uploadArea').classList.add('hidden');
+        document.getElementById('editorArea').classList.remove('hidden');
+        showPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showPreview() {
+      const img = document.getElementById('previewImage');
+      const text = document.getElementById('previewText');
+      if (currentImage) {
+        img.src = currentImage;
+        img.classList.remove('hidden');
+        text.classList.add('hidden');
+      }
+    }
+
+    // 工具切换
+    function setTool(tool) {
+      document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+        btn.className = 'p-3 rounded-lg text-center bg-gray-100 text-gray-700 hover:bg-gray-200';
+      });
+      document.getElementById('btn-' + tool).className = 'p-3 rounded-lg text-center bg-blue-600 text-white';
+
+      ['crop', 'resize', 'rotate', 'compress', 'convert', 'ai'].forEach(t => {
+        document.getElementById(t + 'Options').classList.add('hidden');
+      });
+      document.getElementById(tool + 'Options').classList.remove('hidden');
+    }
+
+    // 图片处理函数
+    function processImage(operation, params) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          let { width, height } = img;
+          let x = 0, y = 0;
+
+          if (operation === 'crop') {
+            x = params.x || 0;
+            y = params.y || 0;
+            width = params.width || img.width;
+            height = params.height || img.height;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
+          } else if (operation === 'resize') {
+            if (params.percent) {
+              width = Math.round(img.width * params.percent / 100);
+              height = Math.round(img.height * params.percent / 100);
+            } else {
+              width = params.width || img.width;
+              height = params.height || img.height;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+          } else if (operation === 'rotate') {
+            if (params.angle) {
+              const angle = (params.angle * Math.PI) / 180;
+              if (Math.abs(params.angle) === 90 || Math.abs(params.angle) === 270) {
+                canvas.width = height;
+                canvas.height = width;
+              } else {
+                canvas.width = width;
+                canvas.height = height;
+              }
+              ctx.translate(canvas.width / 2, canvas.height / 2);
+              ctx.rotate(angle);
+              ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            } else if (params.flip) {
+              canvas.width = width;
+              canvas.height = height;
+              if (params.flip === 'horizontal') {
+                ctx.translate(width, 0);
+                ctx.scale(-1, 1);
+              } else {
+                ctx.translate(0, height);
+                ctx.scale(1, -1);
+              }
+              ctx.drawImage(img, 0, 0);
+            }
+          } else if (operation === 'compress') {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const quality = (params.quality || 80) / 100;
+            resolve(canvas.toDataURL('image/jpeg', quality));
+            return;
+          } else if (operation === 'convert') {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const format = params.format || 'jpeg';
+            const mimeType = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg';
+            resolve(canvas.toDataURL(mimeType, 0.92));
+            return;
+          } else {
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0);
+          }
+          resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.src = currentImage;
+      });
+    }
+
+    // 处理操作
+    async function applyCrop() {
+      const preset = document.getElementById('cropPreset').value;
+      if (preset === 'free') {
+        currentImage = originalImage;
+        showPreview();
+        return;
+      }
+      const img = new Image();
+      img.onload = async () => {
+        const presets = { '16:9': { w: 16, h: 9 }, '4:3': { w: 4, h: 3 }, '1:1': { w: 1, h: 1 }, '2:3': { w: 2, h: 3 } };
+        const p = presets[preset];
+        const imgRatio = img.width / img.height;
+        const presetRatio = p.w / p.h;
+        let tw, th;
+        if (imgRatio > presetRatio) { th = img.height; tw = th * presetRatio; }
+        else { tw = img.width; th = tw / presetRatio; }
+        const px = (img.width - tw) / 2;
+        const py = (img.height - th) / 2;
+        currentImage = await processImage('crop', { x: px, y: py, width: tw, height: th });
+        showPreview();
+        showStatus();
+      };
+      img.src = currentImage;
+    }
+
+    async function applyResize() {
+      const w = parseInt(document.getElementById('resizeWidth').value);
+      const h = parseInt(document.getElementById('resizeHeight').value);
+      currentImage = await processImage('resize', { width: w, height: h });
+      showPreview();
+      showStatus();
+    }
+
+    async function applyResizePercent() {
+      const p = parseInt(document.getElementById('resizePercent').value);
+      currentImage = await processImage('resize', { percent: p });
+      showPreview();
+      showStatus();
+    }
+
+    async function applyRotate(angle) {
+      currentImage = await processImage('rotate', { angle });
+      showPreview();
+      showStatus();
+    }
+
+    async function applyFlip(dir) {
+      currentImage = await processImage('rotate', { flip: dir });
+      showPreview();
+      showStatus();
+    }
+
+    async function applyCompress() {
+      const q = parseInt(document.getElementById('compressQuality').value);
+      currentImage = await processImage('compress', { quality: q });
+      showPreview();
+      showStatus();
+    }
+
+    async function applyConvert() {
+      const f = document.getElementById('convertFormat').value;
+      currentImage = await processImage('convert', { format: f });
+      showPreview();
+      showStatus();
+    }
+
+    function showStatus() {
+      document.getElementById('statusText').classList.remove('hidden');
+    }
+
+    function downloadImage() {
+      if (!currentImage) return;
+      const link = document.createElement('a');
+      link.download = 'hotel-image-' + Date.now() + '.jpg';
+      link.href = currentImage;
+      link.click();
+    }
+
+    function clearImage() {
+      originalImage = null;
+      currentImage = null;
+      document.getElementById('uploadArea').classList.remove('hidden');
+      document.getElementById('editorArea').classList.add('hidden');
+      document.getElementById('previewImage').classList.add('hidden');
+      document.getElementById('previewText').classList.remove('hidden');
+      document.getElementById('statusText').classList.add('hidden');
+      fileInput.value = '';
+    }
+  </script>
+</body>
+</html>
