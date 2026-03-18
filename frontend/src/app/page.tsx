@@ -1,136 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-
-// 图片处理工具函数（浏览器端）
-function parseBase64Image(dataUri: string): { width: number; height: number } | null {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => resolve({ width: img.width, height: img.height })
-    img.onerror = () => resolve(null)
-    img.src = dataUri
-  }) as any
-}
-
-async function processImageClient(
-  imageDataUrl: string,
-  operation: 'crop' | 'resize' | 'rotate' | 'flip' | 'compress' | 'convert',
-  params: any
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        reject(new Error('Canvas not supported'))
-        return
-      }
-
-      let { width, height } = img
-      let x = 0, y = 0
-
-      if (operation === 'crop') {
-        x = params.x || 0
-        y = params.y || 0
-        width = params.width || img.width
-        height = params.height || img.height
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, x, y, width, height, 0, 0, width, height)
-      } else if (operation === 'resize') {
-        if (params.percent) {
-          width = Math.round(img.width * params.percent / 100)
-          height = Math.round(img.height * params.percent / 100)
-        } else {
-          width = params.width || img.width
-          height = params.height || img.height
-        }
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, 0, 0, width, height)
-      } else if (operation === 'rotate') {
-        if (params.angle) {
-          const angle = (params.angle * Math.PI) / 180
-          if (Math.abs(params.angle) === 90 || Math.abs(params.angle) === 270) {
-            canvas.width = height
-            canvas.height = width
-          } else {
-            canvas.width = width
-            canvas.height = height
-          }
-          ctx.translate(canvas.width / 2, canvas.height / 2)
-          ctx.rotate(angle)
-          ctx.drawImage(img, -img.width / 2, -img.height / 2)
-        } else if (params.flip) {
-          canvas.width = width
-          canvas.height = height
-          if (params.flip === 'horizontal') {
-            ctx.translate(width, 0)
-            ctx.scale(-1, 1)
-          } else {
-            ctx.translate(0, height)
-            ctx.scale(1, -1)
-          }
-          ctx.drawImage(img, 0, 0)
-        }
-      } else if (operation === 'compress') {
-        canvas.width = img.width
-        canvas.height = img.height
-        ctx.drawImage(img, 0, 0)
-        const quality = (params.quality || 80) / 100
-        const mimeType = imageDataUrl.match(/^data:([^;]+);/)?.[1] || 'image/jpeg'
-        resolve(canvas.toDataURL(mimeType, quality))
-        return
-      } else if (operation === 'convert') {
-        canvas.width = img.width
-        canvas.height = img.height
-        ctx.drawImage(img, 0, 0)
-        const format = params.format || 'jpeg'
-        const mimeType = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg'
-        resolve(canvas.toDataURL(mimeType, 0.92))
-        return
-      } else {
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, 0, 0)
-      }
-
-      resolve(canvas.toDataURL('image/jpeg', 0.92))
-    }
-    img.onerror = () => reject(new Error('Failed to load image'))
-    img.src = imageDataUrl
-  })
-}
-
-// AI 增强功能（调用 API）
-async function enhanceWithAI(imageDataUrl: string): Promise<string> {
-  // 这里先返回原图，实际需要调用 MiniMax API
-  // MiniMax 主要提供文本 API，图片增强可以用其他服务
-  // 这里先模拟一个处理效果
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        resolve(imageDataUrl)
-        return
-      }
-      
-      // 简单模拟 AI 增强效果 - 轻微锐化
-      ctx.drawImage(img, 0, 0)
-      
-      // 实际项目中这里应该调用专业的图片增强 API
-      // 如 Stability AI, Replicate, 或者国内的图片增强服务
-      resolve(canvas.toDataURL('image/jpeg', 0.95))
-    }
-    img.onerror = () => resolve(imageDataUrl)
-    img.src = imageDataUrl
-  })
-}
+import { useState, useRef } from 'react'
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null)
@@ -143,10 +13,104 @@ export default function Home() {
   const [resizePercent, setResizePercent] = useState<number>(50)
   const [compressQuality, setCompressQuality] = useState<number>(80)
   const [convertFormat, setConvertFormat] = useState<string>('jpeg')
-  const [isAILoading, setIsAILoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const processImageClient = (
+    imgData: string,
+    operation: string,
+    params: any
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Canvas not supported'))
+            return
+          }
+
+          let { width, height } = img
+          let x = 0, y = 0
+
+          if (operation === 'crop') {
+            x = params.x || 0
+            y = params.y || 0
+            width = params.width || img.width
+            height = params.height || img.height
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, x, y, width, height, 0, 0, width, height)
+          } else if (operation === 'resize') {
+            if (params.percent) {
+              width = Math.round(img.width * params.percent / 100)
+              height = Math.round(img.height * params.percent / 100)
+            } else {
+              width = params.width || img.width
+              height = params.height || img.height
+            }
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, 0, 0, width, height)
+          } else if (operation === 'rotate') {
+            if (params.angle) {
+              const angle = (params.angle * Math.PI) / 180
+              if (Math.abs(params.angle) === 90 || Math.abs(params.angle) === 270) {
+                canvas.width = height
+                canvas.height = width
+              } else {
+                canvas.width = width
+                canvas.height = height
+              }
+              ctx.translate(canvas.width / 2, canvas.height / 2)
+              ctx.rotate(angle)
+              ctx.drawImage(img, -img.width / 2, -img.height / 2)
+            } else if (params.flip) {
+              canvas.width = width
+              canvas.height = height
+              if (params.flip === 'horizontal') {
+                ctx.translate(width, 0)
+                ctx.scale(-1, 1)
+              } else {
+                ctx.translate(0, height)
+                ctx.scale(1, -1)
+              }
+              ctx.drawImage(img, 0, 0)
+            }
+          } else if (operation === 'compress') {
+            canvas.width = img.width
+            canvas.height = img.height
+            ctx.drawImage(img, 0, 0)
+            const quality = (params.quality || 80) / 100
+            const mimeType = imgData.match(/^data:([^;]+);/)?.[1] || 'image/jpeg'
+            resolve(canvas.toDataURL(mimeType, quality))
+            return
+          } else if (operation === 'convert') {
+            canvas.width = img.width
+            canvas.height = img.height
+            ctx.drawImage(img, 0, 0)
+            const format = params.format || 'jpeg'
+            const mimeType = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg'
+            resolve(canvas.toDataURL(mimeType, 0.92))
+            return
+          } else {
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, 0, 0)
+          }
+
+          resolve(canvas.toDataURL('image/jpeg', 0.92))
+        } catch (e) {
+          reject(e)
+        }
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = imgData
+    })
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -160,7 +124,7 @@ export default function Home() {
     }
   }
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
@@ -172,25 +136,15 @@ export default function Home() {
       }
       reader.readAsDataURL(file)
     }
-  }, [])
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
   }
 
   const handleCrop = async () => {
     if (!image) return
     setIsProcessing(true)
     try {
-      const img = new Image()
+      const img = new window.Image()
       img.src = image
-      await new Promise(r => img.onload = r)
+      await new Promise(r => (img.onload = r))
       
       const presets: Record<string, { width: number; height: number }> = {
         '16:9': { width: 16, height: 9 },
@@ -199,12 +153,13 @@ export default function Home() {
         '2:3': { width: 2, height: 3 }
       }
       
-      let targetWidth, targetHeight
       const preset = presets[cropPreset]
       
       if (preset) {
         const imgRatio = img.width / img.height
         const presetRatio = preset.width / preset.height
+        
+        let targetWidth, targetHeight
         
         if (imgRatio > presetRatio) {
           targetHeight = img.height
@@ -214,18 +169,17 @@ export default function Home() {
           targetHeight = targetWidth / presetRatio
         }
         
-        const x = (img.width - targetWidth) / 2
-        const y = (img.height - targetHeight) / 2
+        const px = (img.width - targetWidth) / 2
+        const py = (img.height - targetHeight) / 2
         
         const result = await processImageClient(image, 'crop', {
-          x, y, width: targetWidth, height: targetHeight
+          x: px, y: py, width: targetWidth, height: targetHeight
         })
         setProcessedImage(result)
       } else {
-        // Free crop - return original
         setProcessedImage(image)
       }
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -240,7 +194,7 @@ export default function Home() {
         height: resizeHeight 
       })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -254,7 +208,7 @@ export default function Home() {
         percent: resizePercent 
       })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -266,7 +220,7 @@ export default function Home() {
     try {
       const result = await processImageClient(image, 'rotate', { angle: degrees })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -276,9 +230,9 @@ export default function Home() {
     if (!image) return
     setIsProcessing(true)
     try {
-      const result = await processImageClient(image, 'flip', { flip: direction })
+      const result = await processImageClient(image, 'rotate', { flip: direction })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -292,7 +246,7 @@ export default function Home() {
         quality: compressQuality 
       })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
@@ -306,24 +260,14 @@ export default function Home() {
         format: convertFormat 
       })
       setProcessedImage(result)
-    } catch (err) {
+    } catch {
       alert('处理失败，请重试')
     }
     setIsProcessing(false)
   }
 
   const handleAIEnhance = async () => {
-    if (!image) return
-    setIsAILoading(true)
-    try {
-      // 实际项目中这里应该调用专业的 AI 增强 API
-      // 如 Stability AI, Replicate 等
-      const result = await enhanceWithAI(image)
-      setProcessedImage(result)
-    } catch (err) {
-      alert('AI 处理失败，请重试')
-    }
-    setIsAILoading(false)
+    alert('AI 增强功能即将上线！')
   }
 
   const handleDownload = () => {
@@ -341,7 +285,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900">🏨 酒店图片工坊</h1>
@@ -350,14 +293,13 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Upload Area */}
         {!image && (
           <div
             className={`upload-area rounded-xl p-12 text-center cursor-pointer ${isDragging ? 'dragging' : ''}`}
             onClick={() => fileInputRef.current?.click()}
             onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false) }}
           >
             <div className="text-6xl mb-4">📤</div>
             <p className="text-lg text-gray-600 mb-2">点击或拖拽上传图片</p>
@@ -374,9 +316,7 @@ export default function Home() {
 
         {image && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Tools Panel */}
             <div className="lg:col-span-1 space-y-4">
-              {/* Tool Selection */}
               <div className="bg-white rounded-xl p-4 shadow-sm">
                 <h3 className="font-semibold mb-3">选择工具</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -404,7 +344,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Tool Options */}
               <div className="bg-white rounded-xl p-4 shadow-sm">
                 {tool === 'crop' && (
                   <>
@@ -423,7 +362,7 @@ export default function Home() {
                     <button
                       onClick={handleCrop}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
+                      className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '应用裁剪'}
                     </button>
@@ -456,28 +395,26 @@ export default function Home() {
                     <button
                       onClick={handleResize}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
+                      className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '调整尺寸'}
                     </button>
                     <hr className="my-3" />
-                    <div className="space-y-2">
-                      <div>
-                        <label className="text-sm text-gray-600">缩放比例: {resizePercent}%</label>
-                        <input
-                          type="range"
-                          min="10"
-                          max="200"
-                          value={resizePercent}
-                          onChange={(e) => setResizePercent(Number(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-sm text-gray-600">缩放比例: {resizePercent}%</label>
+                      <input
+                        type="range"
+                        min="10"
+                        max="200"
+                        value={resizePercent}
+                        onChange={(e) => setResizePercent(Number(e.target.value))}
+                        className="w-full"
+                      />
                     </div>
                     <button
                       onClick={handleResizePercent}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-secondary w-full mt-2 disabled:opacity-50"
+                      className="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
                     >
                       按比例缩放
                     </button>
@@ -488,16 +425,16 @@ export default function Home() {
                   <>
                     <h3 className="font-semibold mb-3">旋转/翻转</h3>
                     <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => handleRotate(-90)} className="tool-btn tool-btn-secondary">
+                      <button onClick={() => handleRotate(-90)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         ↺ 左转 90°
                       </button>
-                      <button onClick={() => handleRotate(90)} className="tool-btn tool-btn-secondary">
+                      <button onClick={() => handleRotate(90)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         ↻ 右转 90°
                       </button>
-                      <button onClick={() => handleFlip('horizontal')} className="tool-btn tool-btn-secondary">
+                      <button onClick={() => handleFlip('horizontal')} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         ↔ 水平翻转
                       </button>
-                      <button onClick={() => handleFlip('vertical')} className="tool-btn tool-btn-secondary">
+                      <button onClick={() => handleFlip('vertical')} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                         ↕ 垂直翻转
                       </button>
                     </div>
@@ -507,7 +444,7 @@ export default function Home() {
                 {tool === 'compress' && (
                   <>
                     <h3 className="font-semibold mb-3">图片压缩</h3>
-                    <div className="space-y-2">
+                    <div>
                       <label className="text-sm text-gray-600">质量: {compressQuality}%</label>
                       <input
                         type="range"
@@ -521,7 +458,7 @@ export default function Home() {
                     <button
                       onClick={handleCompress}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
+                      className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '压缩图片'}
                     </button>
@@ -543,7 +480,7 @@ export default function Home() {
                     <button
                       onClick={handleConvert}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
+                      className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '转换格式'}
                     </button>
@@ -558,34 +495,31 @@ export default function Home() {
                     </p>
                     <button
                       onClick={handleAIEnhance}
-                      disabled={isAILoading}
-                      className="tool-btn tool-btn-primary w-full disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      {isAILoading ? '🤖 AI 处理中...' : '🤖 AI 增强'}
+                      🤖 AI 增强
                     </button>
                   </>
                 )}
               </div>
 
-              {/* Actions */}
               <div className="bg-white rounded-xl p-4 shadow-sm space-y-2">
                 <button
                   onClick={handleDownload}
                   disabled={!displayImage}
-                  className="tool-btn tool-btn-primary w-full disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   📥 下载图片
                 </button>
                 <button
                   onClick={() => { setImage(null); setProcessedImage(null); }}
-                  className="tool-btn tool-btn-secondary w-full"
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
                 >
                   🗑️ 清空图片
                 </button>
               </div>
             </div>
 
-            {/* Preview */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl p-4 shadow-sm">
                 <h3 className="font-semibold mb-3">预览</h3>
@@ -610,21 +544,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      {/* Processing Overlay */}
-      {(isProcessing || isAILoading) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 text-center">
-            <div className="text-4xl mb-4">
-              {isAILoading ? '🤖' : '⏳'}
-            </div>
-            <p className="text-lg font-medium">
-              {isAILoading ? 'AI 正在处理中...' : '图片处理中...'}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">请稍候</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
