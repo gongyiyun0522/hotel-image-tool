@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>酒店图片智能精修 - AI Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .hero-gradient { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); }
+    .glass { background: rgba(255,255,255,0.95); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="hero-gradient text-white py-12 text-center">
+    <h1 class="text-3xl font-bold">🏨 酒店图片智能精修</h1>
+    <p class="mt-2">AI 一键精修 Demo</p>
+  </div>
+
+  <div class="max-w-4xl mx-auto p-8">
+    <div class="glass rounded-2xl shadow-xl p-8">
+      <h2 class="text-xl font-bold mb-4">1️⃣ 选择精修类型</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <button onclick="selectType('bedroom')" class="type-btn p-4 border-2 rounded-xl text-center hover:border-blue-500">
+          <div class="text-3xl">🛏️</div>
+          <div>客房精修</div>
+        </button>
+        <button onclick="selectType('wrinkle')" class="type-btn p-4 border-2 rounded-xl text-center hover:border-blue-500">
+          <div class="text-3xl">👔</div>
+          <div>祛褶皱</div>
+        </button>
+        <button onclick="selectType('indoor')" class="type-btn p-4 border-2 rounded-xl text-center hover:border-blue-500">
+          <div class="text-3xl">🏠</div>
+          <div>室内氛围</div>
+        </button>
+        <button onclick="selectType('facade')" class="type-btn p-4 border-2 rounded-xl text-center hover:border-blue-500">
+          <div class="text-3xl">🏛️</div>
+          <div>外立面</div>
+        </button>
+      </div>
+
+      <div id="uploadSection" class="hidden">
+        <h2 class="text-xl font-bold mb-4">📷 上传图片</h2>
+        <div class="border-2 border-dashed p-12 text-center cursor-pointer" onclick="document.getElementById('fileInput').click()">
+          <div class="text-4xl">📸</div>
+          <p>点击上传图片</p>
+          <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleUpload(this.files[0])">
+        </div>
+      </div>
+
+      <div id="processSection" class="hidden">
+        <h2 class="text-xl font-bold mb-4">⚡ AI 精修中...</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div><img id="originalImg" class="w-full rounded"></div>
+          <div><img id="processedImg" class="w-full rounded"></div>
+        </div>
+        <p id="statusText" class="text-center mt-4 text-gray-600">处理中...</p>
+      </div>
+
+      <div id="resultSection" class="hidden">
+        <h2 class="text-xl font-bold mb-4">✅ 完成！</h2>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div><img id="resultOriginal" class="w-full rounded"></div>
+          <div><img id="resultProcessed" class="w-full rounded"></div>
+        </div>
+        <div class="text-center">
+          <button onclick="download()" class="bg-blue-600 text-white px-6 py-3 rounded-xl">📥 下载</button>
+          <button onclick="location.reload()" class="bg-gray-200 px-6 py-3 rounded-xl ml-2">🔄 重新</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let type = '', originalData = '', processedData = '';
+
+    function selectType(t) {
+      type = t;
+      document.getElementById('uploadSection').classList.remove('hidden');
+    }
+
+    function handleUpload(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        originalData = e.target.result;
+        document.getElementById('originalImg').src = originalData;
+        document.getElementById('uploadSection').classList.add('hidden');
+        document.getElementById('processSection').classList.remove('hidden');
+        processImage();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function processImage() {
+      const status = document.getElementById('statusText');
+      const steps = ['🔍 识别场景...', '✨ 画质增强...', '🎨 色彩优化...', '✅ 完成'];
+      
+      for (let s of steps) {
+        status.textContent = s;
+        await new Promise(r => setTimeout(r, 600));
+      }
+      
+      // 简单的本地处理模拟
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // 简单调亮
+        for (let i = 0; i < data.data.length; i += 4) {
+          data.data[i] = Math.min(255, data.data[i] + 15);
+          data.data[i+1] = Math.min(255, data.data[i+1] + 15);
+          data.data[i+2] = Math.min(255, data.data[i+2] + 15);
+        }
+        ctx.putImageData(data, 0, 0);
+        
+        processedData = canvas.toDataURL('image/jpeg', 0.92);
+        document.getElementById('processedImg').src = processedData;
+        document.getElementById('resultOriginal').src = originalData;
+        document.getElementById('resultProcessed').src = processedData;
+        
+        setTimeout(() => {
+          document.getElementById('processSection').classList.add('hidden');
+          document.getElementById('resultSection').classList.remove('hidden');
+        }, 500);
+      };
+      img.src = originalData;
+    }
+
+    function download() {
+      const a = document.createElement('a');
+      a.download = 'hotel-' + type + '-' + Date.now() + '.jpg';
+      a.href = processedData;
+      a.click();
+    }
+  </script>
+</body>
+</html>
