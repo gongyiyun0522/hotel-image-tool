@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>酒店图片智能精修 - Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans SC', sans-serif; }
+    .hero-gradient {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3d7ab5 100%);
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    .upload-zone {
+      border: 2px dashed #94a3b8;
+      transition: all 0.3s ease;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      transform: scale(1.02);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+    }
+    .feature-card {
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .loading-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+    .compare-slider {
+      position: relative;
+      overflow: hidden;
+    }
+    .compare-slider .before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .processing-step {
+      opacity: 0.3;
+      transition: all 0.3s;
+    }
+    .processing-step.active {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Hero Section -->
+  <div class="hero-gradient text-white py-16 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="text-5xl mb-4">🏨</div>
+      <h1 class="text-4xl font-bold mb-4">酒店图片智能精修</h1>
+      <p class="text-xl text-blue-100 mb-8">手机拍摄 → AI 精修 → 专业酒店图</p>
+      <div class="flex justify-center gap-4 flex-wrap">
+        <span class="bg-white/20 px-4 py-2 rounded-full text-sm">🤖 AI 智能识别</span>
+        <span class="bg-white/20 px-4 py-2 rounded-full text-sm">⚡ 30秒出片</span>
+        <span class="bg-white/20 px-4 py-2 rounded-full text-sm">📱 手机直出</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-6xl mx-auto px-4 py-12">
+    
+    <!-- Upload Section -->
+    <div class="glass rounded-2xl shadow-xl p-8 mb-12">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">📤 上传你的酒店照片</h2>
+      
+      <div id="uploadArea" class="upload-zone rounded-xl p-12 text-center cursor-pointer">
+        <div class="text-6xl mb-4">📸</div>
+        <p class="text-xl text-gray-600 mb-2">点击或拖拽上传图片</p>
+        <p class="text-gray-400">支持 JPG、PNG 格式，最大 10MB</p>
+        <input type="file" id="fileInput" accept="image/*" class="hidden">
+      </div>
+
+      <!-- Editor Area -->
+      <div id="editorArea" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          <!-- Original -->
+          <div>
+            <h3 class="font-semibold text-gray-600 mb-3">📷 原图</h3>
+            <div class="bg-gray-100 rounded-xl overflow-hidden">
+              <img id="originalImage" class="w-full h-auto">
+            </div>
+          </div>
+          
+          <!-- Processed -->
+          <div>
+            <h3 class="font-semibold text-gray-600 mb-3">✨ AI 精修后</h3>
+            <div class="bg-gray-100 rounded-xl overflow-hidden relative">
+              <img id="processedImage" class="w-full h-auto">
+              <div id="processingOverlay" class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center">
+                <div class="text-4xl mb-4">🤖</div>
+                <p class="text-gray-600 font-medium">AI 正在精修中...</p>
+                <p class="text-sm text-gray-400 mt-2">请稍候</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Processing Steps -->
+        <div id="processingSteps" class="mt-8 flex justify-center gap-4 flex-wrap">
+          <div class="processing-step active flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full" data-step="1">
+            <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
+            <span class="text-sm">AI 识别场景</span>
+          </div>
+          <div class="processing-step flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full" data-step="2">
+            <span class="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs">2</span>
+            <span class="text-sm">画质增强</span>
+          </div>
+          <div class="processing-step flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full" data-step="3">
+            <span class="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs">3</span>
+            <span class="text-sm">色彩优化</span>
+          </div>
+          <div class="processing-step flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full" data-step="4">
+            <span class="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs">4</span>
+            <span class="text-sm">边缘修复</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 flex justify-center gap-4">
+          <button onclick="resetDemo()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition">
+            🔄 重新上传
+          </button>
+          <button id="downloadBtn" onclick="downloadResult()" class="btn-primary px-8 py-3 text-white rounded-xl font-medium" disabled>
+            📥 下载精修图片
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="text-center mb-12">
+      <h2 class="text-2xl font-bold text-gray-800 mb-8">🎯 核心功能</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="feature-card bg-white rounded-xl p-6 shadow-lg">
+          <div class="text-4xl mb-4">🔍</div>
+          <h3 class="font-bold text-lg mb-2">智能识别</h3>
+          <p class="text-gray-500 text-sm">AI 自动识别房间类型，匹配合适的优化方案</p>
+        </div>
+        <div class="feature-card bg-white rounded-xl p-6 shadow-lg">
+          <div class="text-4xl mb-4">✨</div>
+          <h3 class="font-bold text-lg mb-2">画质增强</h3>
+          <p class="text-gray-500 text-sm">提升清晰度，去除噪点，增强细节</p>
+        </div>
+        <div class="feature-card bg-white rounded-xl p-6 shadow-lg">
+          <div class="text-4xl mb-4">🎨</div>
+          <h3 class="font-bold text-lg mb-2">色彩优化</h3>
+          <p class="text-gray-500 text-sm">自动调色，让照片更具酒店专业感</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Preview -->
+    <div class="glass rounded-2xl p-8 text-center">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">💰 定价方案（预览）</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div class="border-2 border-gray-200 rounded-xl p-6">
+          <h3 class="font-bold text-lg">免费版</h3>
+          <p class="text-3xl font-bold text-blue-600 my-4">¥0</p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li>✅ 每天 5 张</li>
+            <li>✅ 基础精修</li>
+            <li>❌ 批量处理</li>
+          </ul>
+        </div>
+        <div class="border-2 border-blue-500 rounded-xl p-6 bg-blue-50">
+          <div class="bg-blue-500 text-white text-xs px-3 py-1 rounded-full inline-block mb-2">推荐</div>
+          <h3 class="font-bold text-lg">专业版</h3>
+          <p class="text-3xl font-bold text-blue-600 my-4">¥99<span class="text-sm font-normal">/月</span></p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li>✅ 每天 100 张</li>
+            <li>✅ AI 精修</li>
+            <li>✅ 批量处理</li>
+          </ul>
+        </div>
+        <div class="border-2 border-gray-200 rounded-xl p-6">
+          <h3 class="font-bold text-lg">企业版</h3>
+          <p class="text-3xl font-bold text-blue-600 my-4">¥499<span class="text-sm font-normal">/月</span></p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li>✅ 无限张数</li>
+            <li>✅ 高级 AI</li>
+            <li>✅ API 接口</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-gray-400 py-8 text-center">
+    <p>© 2026 酒店图片工坊 - Demo Version</p>
+  </footer>
+
+  <script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const editorArea = document.getElementById('editorArea');
+    const originalImage = document.getElementById('originalImage');
+    const processedImage = document.getElementById('processedImage');
+    const processingOverlay = document.getElementById('processingOverlay');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // Upload handlers
+    uploadArea.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) processUpload(file);
+    };
+
+    uploadArea.ondragover = (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); };
+    uploadArea.ondragleave = () => uploadArea.classList.remove('dragover');
+    uploadArea.ondrop = (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) processUpload(file);
+    };
+
+    function processUpload(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        originalImage.src = e.target.result;
+        processedImage.src = e.target.result;
+        
+        uploadArea.classList.add('hidden');
+        editorArea.classList.remove('hidden');
+        
+        // Start AI processing demo
+        startAIProcessing(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Simulate AI processing
+    function startAIProcessing(imageData) {
+      processingOverlay.classList.remove('hidden');
+      downloadBtn.disabled = true;
+      
+      const steps = document.querySelectorAll('.processing-step');
+      
+      // Step 1: AI 识别
+      steps[0].classList.add('active');
+      steps[0].querySelector('span:first-child').classList.replace('bg-gray-400', 'bg-blue-500');
+      
+      setTimeout(() => {
+        // Step 2: 画质增强
+        steps[1].classList.add('active');
+        steps[1].querySelector('span:first-child').classList.replace('bg-gray-400', 'bg-blue-500');
+        
+        setTimeout(() => {
+          // Step 3: 色彩优化
+          steps[2].classList.add('active');
+          steps[2].querySelector('span:first-child').classList.replace('bg-gray-400', 'bg-blue-500');
+          
+          setTimeout(() => {
+            // Step 4: 边缘修复
+            steps[3].classList.add('active');
+            steps[3].querySelector('span:first-child').classList.replace('bg-gray-400', 'bg-blue-500');
+            
+            setTimeout(() => {
+              // Apply simulated enhancement
+              applyAIEnhancement(imageData);
+            }, 800);
+          }, 800);
+        }, 800);
+      }, 800);
+    }
+
+    // Simulated AI enhancement (basic processing for demo)
+    function applyAIEnhancement(imageData) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw original
+        ctx.drawImage(img, 0, 0);
+        
+        // Apply simulated enhancement
+        // Increase brightness slightly
+        const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageDataObj.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Brightness +10%
+          data[i] = Math.min(255, data[i] + 25);
+          data[i + 1] = Math.min(255, data[i + 1] + 25);
+          data[i + 2] = Math.min(255, data[i + 2] + 25);
+        }
+        
+        ctx.putImageData(imageDataObj, 0, 0);
+        
+        // Add slight contrast
+        processedImage.src = canvas.toDataURL('image/jpeg', 0.92);
+        
+        // Hide processing overlay
+        processingOverlay.classList.add('hidden');
+        downloadBtn.disabled = false;
+      };
+      img.src = imageData;
+    }
+
+    function downloadResult() {
+      const link = document.createElement('a');
+      link.download = 'hotel-image-enhanced-' + Date.now() + '.jpg';
+      link.href = processedImage.src;
+      link.click();
+    }
+
+    function resetDemo() {
+      uploadArea.classList.remove('hidden');
+      editorArea.classList.add('hidden');
+      fileInput.value = '';
+      
+      // Reset steps
+      const steps = document.querySelectorAll('.processing-step');
+      steps.forEach((step, i) => {
+        step.classList.remove('active');
+        const badge = step.querySelector('span:first-child');
+        badge.classList.replace('bg-blue-500', 'bg-gray-400');
+      });
+    }
+  </script>
+</body>
+</html>
