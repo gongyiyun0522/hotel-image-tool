@@ -1,0 +1,19 @@
+{
+  "name": "hotel-image-tool",
+  "version": "1.0.0",
+  "description": "酒店图片制作处理平台 - 在线图片处理工具",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:api\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:api": "cd api && npm run dev",
+    "build": "npm run build:frontend && npm run build:api",
+    "build:frontend": "cd frontend && npm run build",
+    "build:api": "cd api && npm run build",
+    "deploy": "npm run build && npm run deploy:api",
+    "deploy:api": "cd api && npm run deploy"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

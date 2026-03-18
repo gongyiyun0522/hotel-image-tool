@@ -1,0 +1,6 @@
+name = "hotel-image-tool-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+MINIMAX_API_KEY = ""
