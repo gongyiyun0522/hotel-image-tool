@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from 'react'
-import ImageEditor from './components/ImageEditor'
+'use client'
 
-function App() {
+import { useState, useRef, useCallback } from 'react'
+
+export default function Home() {
   const [image, setImage] = useState<string | null>(null)
   const [processedImage, setProcessedImage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -13,6 +14,7 @@ function App() {
   const [compressQuality, setCompressQuality] = useState<number>(80)
   const [convertFormat, setConvertFormat] = useState<string>('jpeg')
   const [isAILoading, setIsAILoading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -30,6 +32,7 @@ function App() {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    setIsDragging(false)
     const file = e.dataTransfer.files[0]
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader()
@@ -43,6 +46,12 @@ function App() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
   }
 
   const processImage = async (endpoint: string, body: any) => {
@@ -83,7 +92,6 @@ function App() {
         y: 0
       })
     } else {
-      // Free crop - just use the whole image for now
       setProcessedImage(image)
     }
   }
@@ -146,7 +154,7 @@ function App() {
   const displayImage = processedImage || image
 
   return (
-    <div className="app-container">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -159,10 +167,11 @@ function App() {
         {/* Upload Area */}
         {!image && (
           <div
-            className="upload-area rounded-xl p-12 text-center cursor-pointer"
+            className={`upload-area rounded-xl p-12 text-center cursor-pointer ${isDragging ? 'dragging' : ''}`}
             onClick={() => fileInputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
           >
             <div className="text-6xl mb-4">📤</div>
             <p className="text-lg text-gray-600 mb-2">点击或拖拽上传图片</p>
@@ -228,7 +237,7 @@ function App() {
                     <button
                       onClick={handleCrop}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3"
+                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '应用裁剪'}
                     </button>
@@ -261,7 +270,7 @@ function App() {
                     <button
                       onClick={handleResize}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3"
+                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '调整尺寸'}
                     </button>
@@ -282,7 +291,7 @@ function App() {
                     <button
                       onClick={handleResizePercent}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-secondary w-full mt-2"
+                      className="tool-btn tool-btn-secondary w-full mt-2 disabled:opacity-50"
                     >
                       按比例缩放
                     </button>
@@ -326,7 +335,7 @@ function App() {
                     <button
                       onClick={handleCompress}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3"
+                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '压缩图片'}
                     </button>
@@ -348,7 +357,7 @@ function App() {
                     <button
                       onClick={handleConvert}
                       disabled={isProcessing}
-                      className="tool-btn tool-btn-primary w-full mt-3"
+                      className="tool-btn tool-btn-primary w-full mt-3 disabled:opacity-50"
                     >
                       {isProcessing ? '处理中...' : '转换格式'}
                     </button>
@@ -364,9 +373,9 @@ function App() {
                     <button
                       onClick={handleAIEnhance}
                       disabled={isAILoading}
-                      className="tool-btn tool-btn-primary w-full"
+                      className="tool-btn tool-btn-primary w-full disabled:opacity-50"
                     >
-                      {isAILoading ? 'AI 处理中...' : '🤖 AI 增强'}
+                      {isAILoading ? '🤖 AI 处理中...' : '🤖 AI 增强'}
                     </button>
                   </>
                 )}
@@ -377,7 +386,7 @@ function App() {
                 <button
                   onClick={handleDownload}
                   disabled={!displayImage}
-                  className="tool-btn tool-btn-primary w-full"
+                  className="tool-btn tool-btn-primary w-full disabled:opacity-50"
                 >
                   📥 下载图片
                 </button>
@@ -418,7 +427,7 @@ function App() {
 
       {/* Processing Overlay */}
       {(isProcessing || isAILoading) && (
-        <div className="processing-overlay">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 text-center">
             <div className="text-4xl mb-4">
               {isAILoading ? '🤖' : '⏳'}
@@ -433,5 +442,3 @@ function App() {
     </div>
   )
 }
-
-export default App

@@ -12,10 +12,6 @@ body {
   background-color: #f9fafb;
 }
 
-.app-container {
-  min-height: 100vh;
-}
-
 .upload-area {
   border: 2px dashed #d1d5db;
   transition: all 0.2s ease;
@@ -41,8 +37,4 @@ body {
 
 .tool-btn-secondary {
   @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
-}
-
-.processing-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
 }

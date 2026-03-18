@@ -15,10 +15,10 @@
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | React + TypeScript + Vite |
+| 前端 | Next.js 14 + TypeScript |
 | UI | Tailwind CSS |
 | 后端 | Cloudflare Workers |
-| 图片处理 | Sharp |
+| 图片处理 | Sharp (Workers 兼容) |
 | AI | MiniMax API |
 | 部署 | Cloudflare Pages + Workers |
 
@@ -27,7 +27,10 @@
 ### 安装依赖
 
 ```bash
+# 安装根目录依赖
 npm install
+
+# 安装前端依赖
 cd frontend && npm install
 cd ../api && npm install
 ```
@@ -38,29 +41,37 @@ cd ../api && npm install
 npm run dev
 ```
 
-- 前端: http://localhost:5173
+- 前端: http://localhost:3000
 - API: http://localhost:8787
 
 ### 部署
 
 ```bash
-npm run deploy
+# 部署前端到 Cloudflare Pages
+cd frontend && npm run build
+
+# 部署 API 到 Cloudflare Workers
+cd ../api && npm run deploy
 ```
 
 ## 项目结构
 
 ```
 hotel-image-tool/
-├── frontend/          # 前端项目
+├── frontend/          # Next.js 前端项目
 │   ├── src/
-│   │   ├── components/  # 组件
-│   │   ├── pages/       # 页面
-│   │   └── utils/       # 工具函数
-│   └── vite.config.ts
+│   │   ├── app/        # App Router 页面
+│   │   │   ├── page.tsx    # 主页面
+│   │   │   ├── layout.tsx # 布局
+│   │   │   └── globals.css
+│   │   └── components/  # 组件
+│   ├── tailwind.config.js
+│   └── next.config.js
 ├── api/               # Cloudflare Workers API
 │   ├── src/
 │   │   └── index.ts    # 入口文件
 │   └── wrangler.toml
+├── mvp-requirements.md  # MVP 需求文档
 └── README.md
 ```
 
